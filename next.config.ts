@@ -2,8 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
+  // Every screen is per-user and reads live data, so pages are rendered on each request.
+  cacheComponents: false,
   turbopack: {
     rules: {
       "*.css": {

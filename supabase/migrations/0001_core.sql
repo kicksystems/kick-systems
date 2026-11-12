@@ -186,7 +186,7 @@ begin
   end if;
 
   insert into public.projects (name, slug, description, uses_episodes, copied_from, created_by)
-  select new_name, new_slug, description, uses_episodes, id, auth.uid()
+  select new_name, new_slug, null, uses_episodes, id, auth.uid()
   from public.projects where id = source
   returning id into new_id;
   if new_id is null then raise exception 'Source project not found.'; end if;

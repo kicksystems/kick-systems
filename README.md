@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kick Systems
 
-## Getting Started
+Production management for Kick Pictures. PEKS is the first project.
 
-First, run the development server:
+Stack: Next.js (Vercel) + Supabase (Postgres, login, files). Access rules live in the
+database (row level security), tested in `db/tests/access.test.ts`.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Run locally
+1. Postgres 16 on port 54322 (user `postgres`, no password).
+2. `.env.local`:
+   ```
+   DATABASE_URL=postgres://postgres@127.0.0.1:54322/kick
+   AUTH_MODE=dev
+   DEV_SESSION_SECRET=any-long-random-text
+   ```
+3. `npm install && npm run db:reset && npm run dev`
+4. `npm run test:db` (database rules) and `python3 e2e/walkthrough.py <folder>` (clicks through as each user type).
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`AUTH_MODE=dev` shows a "pick who you want to be" login. It refuses to run in production.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Go online (needs the accounts)
+1. Supabase project: run `supabase/migrations/*.sql` in order. Never run `db/local/*` there.
+2. Supabase Auth: e-mail + password on, sign-ups off (only admins add people).
+3. Vercel env vars:
+   ```
+   DATABASE_URL=<Supabase pooler connection string, transaction mode>
+   DATABASE_SSL=true
+   AUTH_MODE=supabase
+   NEXT_PUBLIC_SUPABASE_URL=...
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+   SUPABASE_SERVICE_ROLE_KEY=...   (server only, used to invite people)
+   SITE_URL=https://<the site address>
+   ```
+4. First admin: create the account in Supabase, then insert their row in `profiles` with `user_type='admin'`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Stages
+1. Base: login, people, projects (own workflow and pages, or copied), menu by permission. ← done
+2. PEKS Shot Tracker, Visual Guides, status rules per user type, status history.
+3. Home screens (admin and artist), Fada dos shots, checklist with the daily phrase.
+4. Discord notifications and the Reports page.
+5. Calendar (rebuilt from the Manus version).
+6. Migration of the Coda episodes.
