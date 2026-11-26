@@ -52,10 +52,10 @@ type CodaPage = { id: string; name: string; parent?: { id: string }; children?: 
 type CodaTable = { id: string; name: string; tableType: "table" | "view"; parent?: { id: string; name?: string } };
 type CodaRow = { id: string; index: number; createdAt?: string; updatedAt?: string; values: Record<string, unknown> };
 
-export async function exportPageMarkdown(pageId: string): Promise<string> {
+export async function exportPageMarkdown(pageId: string, format: "markdown" | "html" = "markdown"): Promise<string> {
   const doc = DOC();
   const start = await api<{ id: string }>(`/docs/${doc}/pages/${encodeURIComponent(pageId)}/export`, {
-    method: "POST", body: JSON.stringify({ outputFormat: "markdown" }),
+    method: "POST", body: JSON.stringify({ outputFormat: format }),
   });
   for (let i = 0; i < 40; i++) {
     await new Promise((r) => setTimeout(r, i < 5 ? 700 : 1500));
@@ -68,6 +68,21 @@ export async function exportPageMarkdown(pageId: string): Promise<string> {
     if (st.status === "failed") throw new Error(`Export failed: ${st.error ?? "unknown"}`);
   }
   throw new Error("Export took too long.");
+}
+
+// The markdown export leaves images out, so Visual Guides are exported as HTML and turned into
+// the same simple markdown: headings, images, text.
+export function htmlToMd(html: string): string {
+  const ent = (t: string) => t.replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#39;|&#x27;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
+  return ent(html
+    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, "")
+    .replace(/<img\b[^>]*?\bsrc="([^"]+)"[^>]*>/gi, (_, src) => `\n![](${src})\n`)
+    .replace(/<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1>/gi, (_, n, t) => `\n${"#".repeat(Number(n))} ${t.replace(/<[^>]+>/g, "")}\n`)
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|li|tr|blockquote)>/gi, "\n")
+    .replace(/<[^>]+>/g, ""))
+    .replace(/\n{3,}/g, "\n\n");
 }
 
 // ─────────── Finding the episodes ───────────
@@ -295,7 +310,7 @@ export async function importEpisode(ep: FoundEpisode, apply: boolean): Promise<E
     ? await all<CodaRow>(`/docs/${doc}/tables/${encodeURIComponent(ep.tableId)}/rows?useColumnNames=true&valueFormat=rich&sortBy=natural`)
     : [];
   const header = ep.trackerPageId ? parseTrackerHeader(await exportPageMarkdown(ep.trackerPageId).catch((e) => { problems.push(`Header: ${e.message}`); return ""; })) : { codaCount: null, storyline: null, header: null };
-  const guide = ep.guidePageId ? parseGuide(await exportPageMarkdown(ep.guidePageId).catch((e) => { problems.push(`Visual Guides: ${e.message}`); return ""; })) : [];
+  const guide = ep.guidePageId ? parseGuide(htmlToMd(await exportPageMarkdown(ep.guidePageId, "html").catch((e) => { problems.push(`Visual Guides: ${e.message}`); return ""; }))) : [];
   if (!ep.guidePageId) problems.push("Visual Guides page not found.");
 
   const pid = await ensurePeks();
