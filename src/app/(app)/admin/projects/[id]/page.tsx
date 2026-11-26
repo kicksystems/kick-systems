@@ -3,8 +3,9 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { asUser } from "@/lib/db";
 import { PAGE_KINDS, PAGE_KIND_LABEL } from "@/lib/queries";
+import { TRACKER_COLUMNS } from "@/lib/shots";
 import {
-  addEpisode, deletePage, deleteStatus, savePage, saveStatus, toggleEpisode, updateProject,
+  addEpisode, deletePage, deleteStatus, savePage, saveStatus, saveTrackerSettings, toggleEpisode, updateProject,
 } from "../actions";
 
 const VIEW_TYPES = ["artist", "client"] as const; // admins, directors and observers see pages automatically
@@ -54,7 +55,7 @@ export default async function ProjectSettings({ params, searchParams }: {
           {hid("id", project.id)}
           <label><span className="label">Name</span><input className="input mt-1" name="name" defaultValue={project.name} required /></label>
           <label><span className="label">Description</span><input className="input mt-1" name="description" defaultValue={project.description ?? ""} /></label>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="uses_episodes" defaultChecked={project.uses_episodes} /> Organised by episodes</label>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="uses_episodes" defaultChecked={project.uses_episodes} /> Organised by episodes (off: one Shot Tracker split by scenes)</label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="is_archived" defaultChecked={project.is_archived} /> Archived (hidden from the menu)</label>
           <div><button className="btn">Save</button></div>
         </form>
@@ -81,6 +82,33 @@ export default async function ProjectSettings({ params, searchParams }: {
           <button className="btn">Add episode</button>
         </form>
         <p className="text-xs text-muted mt-2">A new episode gets the pages listed under “Pages of each episode”.</p>
+      </Section>
+
+      <Section title="Shot Tracker" hint="Which columns the Shot Tracker shows, in what order and with what name. Clients never see Artist, Due date and Internal notes.">
+        <form action={saveTrackerSettings} className="space-y-3">
+          {hid("project_id", id)}
+          <div className="grid gap-1.5">
+            {TRACKER_COLUMNS.map((c) => {
+              const current: string[] = project.tracker_columns?.length ? project.tracker_columns : TRACKER_COLUMNS.map((x) => x.k);
+              const pos = current.indexOf(c.k);
+              return (
+                <div key={c.k} className="grid grid-cols-[28px_64px_1fr] gap-2 items-center text-sm">
+                  <input type="checkbox" name={`col_${c.k}`} defaultChecked={pos >= 0} aria-label={`Show ${c.t}`} />
+                  <input className="input" type="number" name={`ord_${c.k}`} defaultValue={pos >= 0 ? pos + 1 : ""} aria-label={`Position of ${c.t}`} />
+                  <input className="input" name={`lab_${c.k}`} defaultValue={project.column_labels?.[c.k] ?? c.t} aria-label={`Name of ${c.t}`} />
+                </div>
+              );
+            })}
+          </div>
+          {!project.uses_episodes && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="grid gap-1"><span className="label">Type (e.g. Teaser / POC)</span><input className="input" name="type_label" defaultValue={project.type_label ?? ""} /></label>
+              <label className="grid gap-1"><span className="label">Scenes, one per line, in order</span><textarea className="input" name="scenes" rows={5} defaultValue={(project.scenes ?? []).join("\n")} /></label>
+            </div>
+          )}
+          {project.uses_episodes && <input type="hidden" name="scenes" value="" />}
+          <button className="btn">Save Shot Tracker settings</button>
+        </form>
       </Section>
 
       <Section title="Workflow" hint="Admins and directors can set any status. Tick who else may move a shot into each status.">

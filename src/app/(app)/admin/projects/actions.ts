@@ -38,6 +38,11 @@ export async function createProject(fd: FormData) {
       [name, slug, s(fd, "description") || null, fd.get("uses_episodes") === "on", me.id])).rows[0].id as string;
     // A blank project starts with one status so the workflow is never empty.
     await db.query("insert into statuses (project_id, name, sort_order, is_initial) values ($1,'Not Started',1,true)", [pid]);
+    if (fd.get("uses_episodes") !== "on") {
+      // One Shot Tracker split by scenes: the project keeps one hidden episode, so counts and reports work the same way.
+      await db.query("insert into episode_page_templates (project_id, title, kind, visible_to, sort_order) values ($1,'Shots','shot_tracker','{artist,client}',1)", [pid]);
+      await db.query("insert into episodes (project_id, code, title) values ($1,'shots','Shots')", [pid]);
+    }
     return pid;
   });
   await asUser(me.id, (db) => db.query("insert into project_members values ($1,$2) on conflict do nothing", [id, me.id]));
@@ -124,5 +129,22 @@ export async function deletePage(fd: FormData) {
   const pid = s(fd, "project_id");
   const table = s(fd, "scope") === "template" ? "episode_page_templates" : "pages";
   await asUser(me.id, (db) => db.query(`delete from ${table} where id=$1 and project_id=$2`, [s(fd, "id"), pid]));
+  done(pid);
+}
+
+// ── Shot Tracker settings: columns (which, in what order, with what label), scenes, type label ──
+export async function saveTrackerSettings(fd: FormData) {
+  const me = await requireMe();
+  const pid = s(fd, "project_id");
+  const { TRACKER_COLUMNS } = await import("@/lib/shots");
+  const cols = TRACKER_COLUMNS
+    .map((c) => ({ k: c.k as string, on: fd.get(`col_${c.k}`) === "on", order: Number(s(fd, `ord_${c.k}`)) || 99, label: s(fd, `lab_${c.k}`) }))
+    .filter((c) => c.on)
+    .sort((a, b) => a.order - b.order);
+  const labels = Object.fromEntries(cols.filter((c) => c.label && c.label !== TRACKER_COLUMNS.find((x) => x.k === c.k)?.t).map((c) => [c.k, c.label]));
+  const scenes = s(fd, "scenes").split("\n").map((x) => x.trim()).filter(Boolean);
+  await asUser(me.id, (db) => db.query(
+    "update projects set tracker_columns=$2, column_labels=$3, scenes=$4, type_label=nullif($5,'') where id=$1",
+    [pid, cols.map((c) => c.k), JSON.stringify(labels), scenes, s(fd, "type_label")]));
   done(pid);
 }

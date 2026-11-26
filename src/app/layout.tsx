@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import "@fontsource-variable/inter";
-import "@fontsource-variable/fraunces";
+import { DM_Sans, Oswald } from "next/font/google";
 import "./globals.css";
 
+const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap" });
+const oswald = Oswald({ subsets: ["latin"], variable: "--font-oswald", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Kick Systems",
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${dmSans.variable} ${oswald.variable}`}>
       <body className="antialiased">{children}</body>
     </html>
   );

@@ -14,8 +14,12 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <main className="min-h-dvh grid place-items-center px-4 py-10">
       <div className="w-full max-w-sm">
-        <p className="font-display text-3xl font-bold text-accent">Kick Systems</p>
-        <p className="text-muted text-sm mb-6">Production management · Kick Pictures</p>
+        <div className="rail rounded-2xl px-5 py-5 mb-5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/kick-logo.webp" alt="Kick Pictures" width={180} height={85} className="block w-[180px] h-auto" />
+          <p className="font-display uppercase tracking-[.12em] text-sm mt-3">Kick Systems</p>
+          <p className="rail-muted text-xs">Production management</p>
+        </div>
 
         {error && <p role="alert" className="card px-4 py-3 mb-4 text-sm text-danger">{error}</p>}
         {sp.sent && <p className="card px-4 py-3 mb-4 text-sm">If that e-mail has an account, a reset link is on its way.</p>}
