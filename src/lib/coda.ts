@@ -31,7 +31,7 @@ async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
       cache: "no-store",
     });
     if (res.status === 429 && attempt < 4) { await new Promise((r) => setTimeout(r, 1500 * (attempt + 1))); continue; }
-    if (!res.ok) throw new Error(`Superhuman Docs API ${res.status} on ${path.split("?")[0]}: ${(await res.text()).slice(0, 200)}`);
+    if (!res.ok) throw new Error(`Superhuman Docs API ${res.status} on ${path.split("?")[0]}: ${(await res.text()).slice(0, 700)}`);
     return res.json() as Promise<T>;
   }
 }
@@ -79,10 +79,10 @@ export type FoundEpisode = {
 export async function findEpisodes(): Promise<FoundEpisode[]> {
   const doc = DOC();
   const hubName = (process.env.CODA_HUB_PAGE || "PEKS Hub").toLowerCase();
-  const pages = await all<CodaPage>(`/docs/${doc}/pages?limit=500`);
+  const pages = await all<CodaPage>(`/docs/${doc}/pages?limit=100`);
   const hub = pages.find((p) => p.name.toLowerCase().includes(hubName));
   if (!hub) throw new Error("Hub page not found.");
-  const tables = await all<CodaTable>(`/docs/${doc}/tables?limit=500&tableTypes=table,view`);
+  const tables = await all<CodaTable>(`/docs/${doc}/tables?limit=100&tableTypes=table,view`);
   const childrenOf = (id: string) => pages.filter((p) => p.parent?.id === id);
   const below = (id: string): CodaPage[] => childrenOf(id).flatMap((c) => [c, ...below(c.id)]);
 
