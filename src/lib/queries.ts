@@ -19,12 +19,12 @@ export async function navFor(userId: string): Promise<NavProject[]> {
     const episodes = (await db.query(
       "select id, project_id, code, title, is_active from episodes order by is_active desc, code desc")).rows;
     // Progress per episode: shots counted as done / shots (Cancelled and Repeat shot / Alt left out).
-    // Clients read shots through shots_client; for everyone else that view is empty, and the other way round.
+    // Clients read shots through tracker_shots_client; for everyone else that view is empty, and the other way round.
     const prog = new Map<string, { done: number; total: number }>((await db.query(
       `select x.episode_id,
               count(*) filter (where s.counts_as_done)::int as done,
               count(*) filter (where not coalesce(s.not_a_shot, false))::int as total
-         from (select episode_id, status_id from shots union all select episode_id, status_id from shots_client) x
+         from (select episode_id, status_id from tracker_shots union all select episode_id, status_id from tracker_shots_client) x
          left join statuses s on s.id = x.status_id
         group by x.episode_id`)).rows.map((r) => [r.episode_id, { done: r.done, total: r.total }]));
     const pages = (await db.query(

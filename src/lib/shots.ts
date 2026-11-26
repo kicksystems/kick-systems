@@ -7,7 +7,7 @@ export type Status = {
 };
 
 export type Shot = {
-  id: string; code: string; act: string | null; sequence: string | null; slate: string | null;
+  id: string; shot_num: string; act: string | null; sequence: string | null; slate: string | null;
   timecodes: string | null; duration: string | null; brief: string; boards: { url: string; name?: string }[];
   artist_id?: string | null; artist_name?: string | null; status_id: string | null; due_date?: string | null;
   drive_url: string | null; director_notes: string; showrunner_notes: string; elves_notes: string; sort_order: number;
@@ -18,7 +18,7 @@ export type LastChange = { shot_id: string; to_name: string | null; from_name: s
 
 // Columns a Shot Tracker can show, in the default order (same as the Coda Admin View).
 export const TRACKER_COLUMNS = [
-  { k: "code", t: "Shot #" },
+  { k: "shot_num", t: "Shot #" },
   { k: "act", t: "Act" },
   { k: "sequence", t: "Sequence" },
   { k: "slate", t: "Slate" },

@@ -320,7 +320,7 @@ export async function importEpisode(ep: FoundEpisode, apply: boolean): Promise<E
       if (who && !prof) noAccount.add(who.name);
       return {
         ref: `coda:${doc}:${r.id}`, sort: i + 1,
-        code: text(pick(v, /^shot\s*#$/i, /^shot$/i)),
+        shot_num: text(pick(v, /^shot\s*#$/i, /^shot$/i)),
         act: text(pick(v, /^act$/i)) || null,
         sequence: text(pick(v, /^sequence$/i, /^seq/i, /^scene$/i)) || null,
         slate: text(pick(v, /^slate$/i)) || null,
@@ -335,6 +335,7 @@ export async function importEpisode(ep: FoundEpisode, apply: boolean): Promise<E
         director_notes: text(pick(v, /director/i)),
         showrunner_notes: text(pick(v, /showrunner/i)),
         elves_notes: text(pick(v, /^elves/i)),
+        new_shots_review: text(pick(v, /^new shots \(internal/i)),
         producer: text(pick(v, /producer/i)),
         noteAt: r.updatedAt ?? r.createdAt ?? null,
       };
@@ -373,27 +374,28 @@ export async function importEpisode(ep: FoundEpisode, apply: boolean): Promise<E
     }
     for (const s of shots) {
       const r = await c.query(
-        `insert into shots (project_id, episode_id, code, act, sequence, slate, timecodes, duration, brief, boards,
+        `insert into tracker_shots (project_id, episode_id, shot_num, act, sequence, slate, timecodes, duration, brief, boards,
                             artist_id, artist_name, artist_email, status_id, due_date, drive_url, director_notes,
-                            showrunner_notes, elves_notes, sort_order, source_ref)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+                            showrunner_notes, elves_notes, sort_order, source_ref, new_shots_review)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
          on conflict (source_ref) do update set
-           code=excluded.code, act=excluded.act, sequence=excluded.sequence, slate=excluded.slate,
+           shot_num=excluded.shot_num, act=excluded.act, sequence=excluded.sequence, slate=excluded.slate,
            timecodes=excluded.timecodes, duration=excluded.duration, brief=excluded.brief, boards=excluded.boards,
-           artist_id=coalesce(excluded.artist_id, shots.artist_id), artist_name=excluded.artist_name, artist_email=excluded.artist_email,
+           artist_id=coalesce(excluded.artist_id, tracker_shots.artist_id), artist_name=excluded.artist_name, artist_email=excluded.artist_email,
            status_id=excluded.status_id, due_date=excluded.due_date, drive_url=excluded.drive_url,
            director_notes=excluded.director_notes, showrunner_notes=excluded.showrunner_notes, elves_notes=excluded.elves_notes,
+           new_shots_review=excluded.new_shots_review,
            sort_order=excluded.sort_order
-         where not shots.edited_here
+         where not tracker_shots.edited_here
          returning id`,
-        [pid, eid, s.code, s.act, s.sequence, s.slate, s.timecodes, s.duration, s.brief, JSON.stringify(s.boards),
+        [pid, eid, s.shot_num, s.act, s.sequence, s.slate, s.timecodes, s.duration, s.brief, JSON.stringify(s.boards),
          s.artist_id, s.artist_name, s.artist_email, s.status_id, s.due_date, s.drive_url, s.director_notes,
-         s.showrunner_notes, s.elves_notes, s.sort, s.ref]);
+         s.showrunner_notes, s.elves_notes, s.sort, s.ref, s.new_shots_review]);
       const shotId = r.rows[0]?.id as string | undefined;
       if (!shotId) { report.skippedEditedHere++; continue; }
       if (s.producer) {
         await c.query(
-          `insert into shot_notes (shot_id, author_name, body, created_at, source_ref) values ($1,'Regis',$2,coalesce($3::timestamptz, now()),$4)
+          `insert into tracker_notes (shot_id, author_name, body, created_at, source_ref) values ($1,'Regis',$2,coalesce($3::timestamptz, now()),$4)
            on conflict (source_ref) do update set body=excluded.body`,
           [shotId, s.producer, s.noteAt, `${s.ref}:producer`]);
       }
