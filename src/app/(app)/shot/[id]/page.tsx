@@ -4,6 +4,7 @@ import { requireMe } from "@/lib/auth";
 import { asUser } from "@/lib/db";
 import { projectStatuses, fmtWhen } from "@/lib/shots";
 import { deleteShot, saveShot } from "../../page/actions";
+import { SubmitButton } from "@/components/submit-button";
 
 export default async function EditShot({ params, searchParams }: {
   params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>>;
@@ -73,8 +74,8 @@ export default async function EditShot({ params, searchParams }: {
         {area("showrunner_notes", "Showrunner Notes", shot.showrunner_notes)}
         {area("elves_notes", "Elves Notes", shot.elves_notes)}
         <div className="sm:col-span-2 flex flex-wrap gap-2 justify-between">
-          <button className="btn">Save shot</button>
-          <button formAction={deleteShot} className="btn btn-danger">Delete shot</button>
+          <SubmitButton className="btn">Save shot</SubmitButton>
+          <SubmitButton formAction={deleteShot} className="btn btn-danger">Delete shot</SubmitButton>
         </div>
       </form>
 

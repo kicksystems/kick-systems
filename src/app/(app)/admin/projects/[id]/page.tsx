@@ -7,6 +7,7 @@ import { TRACKER_COLUMNS } from "@/lib/shots";
 import {
   addEpisode, deletePage, deleteStatus, savePage, saveStatus, saveTrackerSettings, toggleEpisode, updateProject,
 } from "../actions";
+import { SubmitButton } from "@/components/submit-button";
 
 const VIEW_TYPES = ["artist", "client"] as const; // admins, directors and observers see pages automatically
 
@@ -57,7 +58,7 @@ export default async function ProjectSettings({ params, searchParams }: {
           <label><span className="label">Description</span><input className="input mt-1" name="description" defaultValue={project.description ?? ""} /></label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="uses_episodes" defaultChecked={project.uses_episodes} /> Organised by episodes (off: one Shot Tracker split by scenes)</label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="is_archived" defaultChecked={project.is_archived} /> Archived (hidden from the menu)</label>
-          <div><button className="btn">Save</button></div>
+          <div><SubmitButton className="btn">Save</SubmitButton></div>
         </form>
       </Section>
 
@@ -69,7 +70,7 @@ export default async function ProjectSettings({ params, searchParams }: {
               <span className={`chip ${e.is_active ? "" : "!bg-line !text-muted"}`}>{e.is_active ? "active" : "closed"}</span>
               <form action={toggleEpisode} className="ml-auto">
                 {hid("id", e.id)}{hid("project_id", id)}
-                <button className="btn btn-ghost">{e.is_active ? "Close" : "Reopen"}</button>
+                <SubmitButton className="btn btn-ghost">{e.is_active ? "Close" : "Reopen"}</SubmitButton>
               </form>
             </li>
           ))}
@@ -79,7 +80,7 @@ export default async function ProjectSettings({ params, searchParams }: {
           {hid("project_id", id)}
           <label className="flex flex-col"><span className="label">Episode number</span><input className="input mt-1 w-32" name="code" required /></label>
           <label className="grow flex flex-col"><span className="label">Title (optional)</span><input className="input mt-1" name="title" /></label>
-          <button className="btn">Add episode</button>
+          <SubmitButton className="btn">Add episode</SubmitButton>
         </form>
         <p className="text-xs text-muted mt-2">A new episode gets the pages listed under “Pages of each episode”.</p>
       </Section>
@@ -107,7 +108,7 @@ export default async function ProjectSettings({ params, searchParams }: {
             </div>
           )}
           {project.uses_episodes && <input type="hidden" name="scenes" value="" />}
-          <button className="btn">Save Shot Tracker settings</button>
+          <SubmitButton className="btn">Save Shot Tracker settings</SubmitButton>
         </form>
       </Section>
 
@@ -137,9 +138,9 @@ export default async function ProjectSettings({ params, searchParams }: {
                       <label className="flex justify-center"><input type="checkbox" name="counts_as_done" defaultChecked={st?.counts_as_done} aria-label="Counts as done" /></label>
                       <label className="flex justify-center"><input type="radio" name="is_initial" defaultChecked={st?.is_initial} aria-label="New shots start here" /></label>
                       <span className="flex gap-2 justify-end">
-                        <button className="btn btn-ghost">{st ? "Save" : "Add"}</button>
+                        <SubmitButton className="btn btn-ghost">{st ? "Save" : "Add"}</SubmitButton>
                         {st && !st.is_initial && (
-                          <button formAction={deleteStatus} className="btn btn-danger" aria-label={`Remove ${st.name}`}>Remove</button>
+                          <SubmitButton formAction={deleteStatus} className="btn btn-danger" aria-label={`Remove ${st.name}`}>Remove</SubmitButton>
                         )}
                       </span>
                     </form>
@@ -188,8 +189,8 @@ export default async function ProjectSettings({ params, searchParams }: {
               ))}
             </span>
             <span className="flex gap-2">
-              <button className="btn btn-ghost">{r ? "Save" : "Add"}</button>
-              {r && <button formAction={deletePage} className="btn btn-danger" aria-label={`Remove ${r.title}`}>Remove</button>}
+              <SubmitButton className="btn btn-ghost">{r ? "Save" : "Add"}</SubmitButton>
+              {r && <SubmitButton formAction={deletePage} className="btn btn-danger" aria-label={`Remove ${r.title}`}>Remove</SubmitButton>}
             </span>
           </form>
         ))}

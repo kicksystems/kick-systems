@@ -68,3 +68,21 @@ create policy shots_artist_update on public.shots for update to authenticated us
 create policy shot_history_read on public.shot_status_history for select to authenticated
   using (exists (select 1 from shots s where s.id = shot_status_history.shot_id and can_view_project(s.project_id)));
 grant select, insert, update, delete on public.shots, public.shot_status_history to authenticated;
+
+-- Reminders (Fada dos shots), as created by 0003_fada.
+create table public.reminders (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid references public.projects(id) on delete cascade,
+  recipient_id uuid references public.profiles(id) on delete cascade,
+  body text not null,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz
+);
+alter table public.reminders enable row level security;
+create policy reminders_manage on public.reminders for all to authenticated
+  using (is_admin() or (project_id is not null and can_manage_project(project_id)))
+  with check (is_admin() or (project_id is not null and can_manage_project(project_id)));
+create policy reminders_read on public.reminders for select to authenticated
+  using ((project_id is null or can_view_project(project_id)) and (recipient_id is null or recipient_id = auth.uid() or is_admin() or (project_id is not null and can_manage_project(project_id))));
+grant select, insert, update, delete on public.reminders to authenticated;

@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { createLoginAccount } from "@/lib/auth-admin";
+import { createLoginAccount, resendInvite as resend } from "@/lib/auth-admin";
 import { asUser } from "@/lib/db";
 import { USER_TYPES } from "@/lib/queries";
 
@@ -51,4 +51,13 @@ export async function updatePerson(fd: FormData) {
   });
   revalidatePath("/", "layout");
   redirect("/admin/users?saved=1");
+}
+
+export async function resendInvite(fd: FormData) {
+  const me = await requireAdmin();
+  const id = String(fd.get("id") ?? "");
+  const email = await asUser(me.id, async (db) => (await db.query("select email from profiles where id=$1", [id])).rows[0]?.email as string | undefined);
+  if (!email) throw new Error("Person not found.");
+  await resend(email);
+  redirect("/admin/users?invited=1");
 }

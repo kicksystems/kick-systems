@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { asUser } from "@/lib/db";
 import { createProject } from "./actions";
+import { SubmitButton } from "@/components/submit-button";
 
 export default async function ProjectsPage() {
   const me = await requireAdmin();
@@ -28,7 +29,7 @@ export default async function ProjectsPage() {
         <label className="sm:col-span-2"><span className="label">Description (blank projects)</span><input className="input mt-1" name="description" /></label>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="uses_episodes" defaultChecked /> Organised by episodes</label>
         <p className="text-xs text-muted sm:col-span-2">Copying brings the workflow, the pages and their content. It does not bring episodes, shots or people.</p>
-        <div><button className="btn">Create project</button></div>
+        <div><SubmitButton className="btn">Create project</SubmitButton></div>
       </form>
 
       <ul className="card divide-y divide-line">

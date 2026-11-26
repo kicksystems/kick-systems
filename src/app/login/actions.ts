@@ -25,7 +25,7 @@ export async function forgotPassword(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const supabase = await supabaseServer();
   await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.SITE_URL}/auth/callback?next=/auth/set-password`,
+    redirectTo: `${process.env.SITE_URL}/auth/accept?next=/auth/set-password`,
   });
   // Same answer whether or not the e-mail exists.
   redirect("/login?sent=1");

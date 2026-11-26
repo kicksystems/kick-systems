@@ -2,7 +2,9 @@ import { Fragment } from "react";
 import { requireAdmin } from "@/lib/auth";
 import { asUser } from "@/lib/db";
 import { USER_TYPES, USER_TYPE_HELP } from "@/lib/queries";
-import { addPerson, updatePerson } from "./actions";
+import { addPerson, resendInvite, updatePerson } from "./actions";
+import { pendingInvites } from "@/lib/auth-admin";
+import { SubmitButton } from "@/components/submit-button";
 
 type Person = {
   id: string; full_name: string; email: string; user_type: string;
@@ -12,6 +14,7 @@ type Person = {
 export default async function UsersPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const me = await requireAdmin();
   const sp = await searchParams;
+  const pending = await pendingInvites();
   const { people, projects } = await asUser(me.id, async (db) => ({
     people: (await db.query<Person>(
       `select p.*, coalesce(array_agg(m.project_id) filter (where m.project_id is not null), '{}') as project_ids
@@ -24,7 +27,8 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
     <div className="max-w-5xl">
       <h1 className="font-display text-3xl font-bold">People</h1>
       <p className="text-muted mb-5">Who logs in, what type of user they are and which projects they belong to.</p>
-      {(sp.added || sp.saved) && <p className="card px-4 py-2 mb-4 text-sm text-ok">{sp.added ? "Person added. Online, they get an e-mail to choose a password." : "Saved."}</p>}
+      {(sp.added || sp.saved || sp.invited) && <p className="card px-4 py-2 mb-4 text-sm text-ok">{sp.added ? "Person added. They get an e-mail with a link to choose their password." : sp.invited ? "Invitation sent again." : "Saved."}</p>}
+      <p className="text-sm text-muted mb-5">How passwords work: nobody types a password for someone else. A new person gets an e-mail with a link, and chooses their own password. If the e-mail got lost or the link expired, open the person and use “Send the invitation again”.</p>
 
       <details className="card p-5 mb-6">
         <summary className="cursor-pointer font-semibold">Add a person</summary>
@@ -38,11 +42,18 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
               <span className={`font-semibold ${p.is_active ? "" : "line-through text-muted"}`}>{p.full_name}</span>
               <span className="chip">{p.user_type}</span>
               <span className="text-xs text-muted">{p.email}</span>
+              {pending.has(p.id) && <span className="chip !bg-[#fdf0d5] !text-[#8a5a00]">Waiting for password</span>}
               <span className="text-xs text-muted ml-auto">
                 {p.project_ids.map((id) => projects.find((x) => x.id === id)?.name).filter(Boolean).join(", ") || "No projects"}
               </span>
             </summary>
             <PersonForm action={updatePerson} projects={projects} person={p} submit="Save" isSelf={p.id === me.id} />
+            {p.id !== me.id && (
+              <form action={resendInvite} className="mt-3">
+                <input type="hidden" name="id" value={p.id} />
+                <SubmitButton className="btn btn-ghost btn-sm">{pending.has(p.id) ? "Send the invitation again" : "Send a link to change the password"}</SubmitButton>
+              </form>
+            )}
           </details>
         ))}
       </section>
@@ -95,7 +106,7 @@ function PersonForm({ action, projects, person, submit, isSelf = false }: {
           {isSelf && <input type="hidden" name="is_active" value="on" />}
         </label>
       )}
-      <div className="sm:col-span-2"><button className="btn">{submit}</button></div>
+      <div className="sm:col-span-2"><SubmitButton className="btn">{submit}</SubmitButton></div>
     </form>
   );
 }

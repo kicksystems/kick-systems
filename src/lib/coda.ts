@@ -379,6 +379,8 @@ export async function importEpisode(ep: FoundEpisode, apply: boolean): Promise<E
   const c = await pool.connect();
   try {
     await c.query("begin");
+    // One line in the shot count history per import, instead of one per row.
+    await c.query("select set_config('kick.bulk_import', 'on', true)");
     const epRef = `coda:${doc}:${ep.pageId}`;
     let eid = (await c.query("select id from episodes where source_ref=$1 or (project_id=$2 and code=$3) limit 1", [epRef, pid, ep.code])).rows[0]?.id as string | undefined;
     if (eid) {
@@ -416,6 +418,13 @@ export async function importEpisode(ep: FoundEpisode, apply: boolean): Promise<E
            on conflict (source_ref) do update set body=excluded.body`,
           [shotId, s.producer, s.noteAt, `${s.ref}:producer`]);
       }
+    }
+    const before = (await c.query("select shots_after from tracker_count_history where episode_id=$1 order by changed_at desc, id desc limit 1", [eid])).rows[0]?.shots_after as number | undefined;
+    const after = Number((await c.query("select count(*) from tracker_shots where episode_id=$1", [eid])).rows[0].count);
+    if (before !== after) {
+      await c.query(
+        "insert into tracker_count_history (episode_id, shots_before, shots_after, changed_by_name, note) values ($1,$2,$3,'Import','Imported from Superhuman Docs')",
+        [eid, before ?? null, after]);
     }
     await c.query("delete from guide_items where episode_id=$1 and source_ref like 'coda:%'", [eid]);
     for (const [i, g] of guide.entries()) {

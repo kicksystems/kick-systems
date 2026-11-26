@@ -8,6 +8,7 @@ import {
 } from "@/lib/shots";
 import { addNote, addShot, deleteNote, saveClientNote } from "./actions";
 import { StatusSelect } from "./status-select";
+import { SubmitButton } from "@/components/submit-button";
 
 type PageInfo = { id: string; title: string; project_id: string; episode_id: string; project: string; uses_episodes: boolean; episode: string | null };
 type Row = Shot & { artist_display?: string | null };
@@ -33,10 +34,13 @@ export async function TrackerView({ me, page, sp }: { me: Me; page: PageInfo; sp
     const last: LastChange[] = client || !ids.length ? [] : (await db.query<LastChange>(
       `select distinct on (shot_id) shot_id, from_name, to_name, changed_by_name, ${ISO("changed_at")} as changed_at
          from tracker_status_history where shot_id = any($1) order by shot_id, changed_at desc, id desc`, [ids])).rows;
-    return { project, episode, manager, statuses, shots, notes, last };
+    const countLog = client ? [] : (await db.query<{ shots_before: number | null; shots_after: number; changed_by_name: string; note: string | null; changed_at: string }>(
+      `select shots_before, shots_after, changed_by_name, note, ${ISO("changed_at")} as changed_at
+         from tracker_count_history where episode_id=$1 order by changed_at desc, id desc limit 40`, [page.episode_id])).rows;
+    return { project, episode, manager, statuses, shots, notes, last, countLog };
   });
 
-  const { project, episode, manager, statuses, shots, notes, last } = data;
+  const { project, episode, manager, statuses, shots, notes, last, countLog } = data;
   const cols = projectColumns(project, me.user_type);
   const hasSlate = cols.some((c) => c.k === "slate");
   const count = episodeCount(shots, statuses, hasSlate);
@@ -95,7 +99,7 @@ export async function TrackerView({ me, page, sp }: { me: Me; page: PageInfo; sp
                 {manager && (
                   <form action={deleteNote} className="inline">
                     <input type="hidden" name="note" value={n.id} /><input type="hidden" name="back" value={here} />
-                    <button className="ml-1 text-muted hover:text-danger" aria-label="Remove this note">×</button>
+                    <SubmitButton className="ml-1 text-muted hover:text-danger" aria-label="Remove this note">×</SubmitButton>
                   </form>
                 )}
               </div>
@@ -116,7 +120,7 @@ export async function TrackerView({ me, page, sp }: { me: Me; page: PageInfo; sp
             <form action={saveClientNote} className="grid gap-1">
               <input type="hidden" name="shot" value={x.id} /><input type="hidden" name="field" value={k} /><input type="hidden" name="back" value={here} />
               <textarea name="body" defaultValue={v} rows={2} className="input text-xs" aria-label={`${k === "elves_notes" ? "Elves" : "Showrunner"} notes for ${x.shot_num}`} />
-              <button className="btn btn-ghost btn-sm justify-self-start">Save</button>
+              <SubmitButton className="btn btn-ghost btn-sm justify-self-start">Save</SubmitButton>
             </form>
           </td>);
         return <td key={k} className="note">{v || <span className="text-muted">–</span>}</td>;
@@ -157,7 +161,7 @@ export async function TrackerView({ me, page, sp }: { me: Me; page: PageInfo; sp
         {manager && (
           <form action={addShot} className="flex gap-2 items-center">
             <input type="hidden" name="episode" value={episode.id} /><input type="hidden" name="back" value={here} />
-            <button className="btn">Add shot</button>
+            <SubmitButton className="btn">Add shot</SubmitButton>
           </form>
         )}
       </div>
@@ -165,9 +169,35 @@ export async function TrackerView({ me, page, sp }: { me: Me; page: PageInfo; sp
 
       <section className="callout grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] mb-4">
         <div>
-          <h2 className="font-display text-xl font-semibold">{count.text}</h2>
-          <p className="text-xs text-muted mt-0.5 mb-3">
-            Counted automatically: {hasSlate ? "slates are the distinct SLATE numbers, " : ""}shots leave out {statuses.filter((x) => x.not_a_shot).map((x) => x.name).join(" and ") || "nothing"}{hasSlate ? ", and the duration takes one shot per slate" : ""}.
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="rounded-xl bg-surface border border-line px-4 py-2 flex items-center gap-3">
+              <div>
+                <p className="label uppercase">Shots</p>
+                <p className="font-display text-3xl font-bold leading-none">{count.shots}</p>
+              </div>
+              {!client && (
+                <details className="relative">
+                  <summary className="inline-grid place-items-center w-7 h-7 rounded-full border border-line bg-surface text-[13px] font-bold text-muted hover:border-accent hover:text-accent" aria-label="Who changed the number of shots, and when">i</summary>
+                  <div className="absolute z-30 left-0 top-9 w-[320px] max-h-[320px] overflow-auto card p-3 shadow-xl text-xs">
+                    <p className="font-semibold mb-1">Number of shots: history</p>
+                    {countLog.length ? (
+                      <ul className="space-y-1.5">
+                        {countLog.map((c, i) => (
+                          <li key={i}>
+                            <b>{c.shots_before ?? "–"} → {c.shots_after}</b> · {c.changed_by_name} · <span className="text-muted">{fmtWhen(c.changed_at)}</span>
+                            {c.note && <span className="block text-muted">{c.note}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : <p className="text-muted">No changes recorded yet.</p>}
+                  </div>
+                </details>
+              )}
+            </div>
+            <h2 className="font-display text-xl font-semibold">{count.text}</h2>
+          </div>
+          <p className="text-xs text-muted mt-1 mb-3">
+            Counted automatically: every row is a shot{hasSlate ? ", slates are the distinct SLATE numbers and the duration takes one shot per slate" : ""}. The progress bar leaves out {statuses.filter((x) => x.not_a_shot).map((x) => x.name).join(" and ") || "nothing"}.
           </p>
           {episode.storyline && <><h3 className="font-display font-semibold">{page.uses_episodes ? "Storyline" : "About"}</h3><Markdown text={episode.storyline} className="text-sm" /></>}
           <div className="mt-3">
@@ -197,7 +227,7 @@ export async function TrackerView({ me, page, sp }: { me: Me; page: PageInfo; sp
           {seqs.map((q) => <option key={q} value={q}>{q}</option>)}
         </select>
         <input type="search" name="q" defaultValue={sp.q ?? ""} placeholder="Search shot or brief" className="input !w-56" aria-label="Search shots" />
-        <button className="btn btn-ghost btn-sm">Filter</button>
+        <SubmitButton className="btn btn-ghost btn-sm">Filter</SubmitButton>
         {(f.artist || f.status || f.seq || f.q || f.mine) && <Link href={here} className="text-sm underline text-muted">Clear</Link>}
         <span className="text-sm text-muted ml-auto">{list.length} of {shots.length} rows</span>
       </form>
@@ -216,7 +246,7 @@ export async function TrackerView({ me, page, sp }: { me: Me; page: PageInfo; sp
                       {manager && (
                         <form action={addShot} className="inline ml-2">
                           <input type="hidden" name="episode" value={episode.id} /><input type="hidden" name="sequence" value={q} /><input type="hidden" name="back" value={here} />
-                          <button className="btn btn-ghost btn-sm">Add shot to this scene</button>
+                          <SubmitButton className="btn btn-ghost btn-sm">Add shot to this scene</SubmitButton>
                         </form>
                       )}
                     </td></tr>,

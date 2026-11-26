@@ -56,11 +56,9 @@ export function seconds(v: string | null | undefined): number {
   return parseFloat(t) || 0;
 }
 
-// The Coda callout rule: "53 slates, 51 shots - approx 4 minutes and 13 seconds".
-// Slates = distinct SLATE values; shots = rows except the statuses that are not a shot (Cancelled, Repeat shot / Alt);
-// duration = one duration per slate (the first row of each slate).
-export function episodeCount(shots: Pick<Shot, "slate" | "duration" | "status_id">[], statuses: Status[], withSlates = true) {
-  const notShot = new Set(statuses.filter((s) => s.not_a_shot).map((s) => s.id));
+// Episode count. The number of shots is the number of rows (team decision, Nov 25 2026).
+// Slates = distinct SLATE values; duration = one duration per slate (the first row of each slate).
+export function episodeCount(shots: Pick<Shot, "slate" | "duration" | "status_id">[], _statuses: Status[], withSlates = true) {
   const per = new Map<string, number>();
   for (const s of shots) {
     const key = (s.slate ?? "").trim();
@@ -69,7 +67,7 @@ export function episodeCount(shots: Pick<Shot, "slate" | "duration" | "status_id
   const total = [...per.values()].reduce((a, b) => a + b, 0);
   const m = Math.floor(total / 60), x = Math.round(total % 60);
   const dur = [m ? `${m} minute${m === 1 ? "" : "s"}` : "", x || !m ? `${x} second${x === 1 ? "" : "s"}` : ""].filter(Boolean).join(" and ");
-  const n = shots.filter((s) => !(s.status_id && notShot.has(s.status_id))).length;
+  const n = shots.length;
   const text = withSlates && per.size
     ? `${per.size} slate${per.size === 1 ? "" : "s"}, ${n} shot${n === 1 ? "" : "s"} - approx ${dur}`
     : `${n} shot${n === 1 ? "" : "s"}`;

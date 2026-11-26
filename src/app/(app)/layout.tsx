@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireMe } from "@/lib/auth";
 import { navFor } from "@/lib/queries";
 import { logout } from "../login/actions";
+import { SubmitButton } from "@/components/submit-button";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const me = await requireMe();
@@ -24,10 +25,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <ul className="space-y-0.5 mb-4">
               <li><Link href="/" className="rail-link">Home</Link></li>
               <li><span className="rail-link rail-muted" title="Arrives with the calendar stage">Calendar <span className="text-xs">(soon)</span></span></li>
+              {(me.user_type === "admin" || me.user_type === "director") && <li><Link href="/reports" className="rail-link">Reports</Link></li>}
               {me.user_type === "admin" && (<>
+                <li><Link href="/fada" className="rail-link">Fada dos shots</Link></li>
+                <li><Link href="/artists" className="rail-link">Artist Management</Link></li>
                 <li><Link href="/admin/users" className="rail-link">People</Link></li>
                 <li><Link href="/admin/projects" className="rail-link">Projects</Link></li>
               </>)}
+              {me.user_type !== "client" && <li><Link href="/checklists" className="rail-link">Checklists</Link></li>}
             </ul>
 
             {projects.length === 0 && (
@@ -73,7 +78,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="mt-auto px-4 py-4 border-t border-[var(--rail-line)] text-sm">
             <p className="font-semibold">{me.full_name}</p>
             <p className="rail-muted text-xs mb-2 capitalize">{me.user_type}</p>
-            <form action={logout}><button className="text-xs underline rail-muted hover:text-white">Log out</button></form>
+            <form action={logout}><SubmitButton className="text-xs underline rail-muted hover:text-white">Log out</SubmitButton></form>
             <p className="text-[10.5px] leading-relaxed rail-muted opacity-85 mt-3">
               Powered by Kick Systems<br />© 2026 Kick Pictures. All rights reserved.<br />
               <a href="https://kickpictures.com" target="_blank" rel="noreferrer" className="underline">kickpictures.com</a>

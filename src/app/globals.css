@@ -107,3 +107,23 @@ select.st { border-radius: 99px; font-weight: 600; font-size: 13px; min-height: 
 }
 
 a:focus-visible, button:focus-visible, summary:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Everything clickable looks clickable, reacts on hover and shows it was pressed. */
+button, [role="button"], summary, select, label[for], input[type="checkbox"], input[type="radio"], input[type="color"], .btn, a.btn { cursor: pointer; }
+button:disabled, .btn:disabled, select:disabled { cursor: not-allowed; opacity: .55; }
+.btn { transition: filter .12s, transform .06s, background-color .12s, border-color .12s, box-shadow .12s; }
+.btn:hover:not(:disabled) { filter: brightness(1.1); box-shadow: 0 2px 8px color-mix(in srgb, var(--ink) 18%, transparent); }
+.btn-ghost:hover:not(:disabled) { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); filter: none; }
+.btn:active:not(:disabled), button:active:not(:disabled) { transform: translateY(1px) scale(.98); }
+button[data-pending], .btn[data-pending] { cursor: progress; opacity: .75; }
+button[data-pending]::after, .btn[data-pending]::after {
+  content: ""; width: 12px; height: 12px; border-radius: 50%; margin-left: 6px; display: inline-block;
+  border: 2px solid currentColor; border-right-color: transparent; animation: kick-spin .7s linear infinite;
+}
+@keyframes kick-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { button[data-pending]::after, .btn[data-pending]::after { animation: none; } }
+a:not(.btn):hover { text-decoration-thickness: 2px; }
+.rail-link { transition: background-color .12s; }
+select.st:hover:not(:disabled) { filter: brightness(.97); box-shadow: 0 0 0 2px color-mix(in srgb, var(--c) 30%, transparent); }
+details > summary { list-style: none; }
+details > summary::-webkit-details-marker { display: none; }

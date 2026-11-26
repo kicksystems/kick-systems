@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/auth";
+import { SubmitButton } from "@/components/submit-button";
 
 async function setPassword(formData: FormData) {
   "use server";
@@ -23,7 +24,7 @@ export default async function SetPassword({ searchParams }: { searchParams: Prom
           <input className="input mt-1" name="password" type="password" autoComplete="new-password" minLength={10} required /></label>
         <label className="block"><span className="label">Type it again</span>
           <input className="input mt-1" name="confirm" type="password" autoComplete="new-password" minLength={10} required /></label>
-        <button className="btn w-full justify-center">Save and enter</button>
+        <SubmitButton className="btn w-full justify-center">Save and enter</SubmitButton>
       </form>
     </main>
   );
