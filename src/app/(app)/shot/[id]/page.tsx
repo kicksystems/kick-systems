@@ -44,11 +44,11 @@ export default async function EditShot({ params, searchParams }: {
     <div className="max-w-4xl">
       <Link href={back} className="text-sm text-muted hover:text-accent">← Shot Tracker</Link>
       <p className="text-sm text-muted mt-2">{shot.project}{shot.uses_episodes ? ` · Episode ${shot.episode}` : ""}</p>
-      <h1 className="text-3xl font-bold mb-4">Edit {shot.shot_num || "shot"}</h1>
+      <h1 className="text-3xl font-bold mb-4">Edit {shot.code || "shot"}</h1>
 
       <form action={saveShot} className="card p-5 grid gap-3 sm:grid-cols-2">
         <input type="hidden" name="id" value={shot.id} /><input type="hidden" name="back" value={back} />
-        {field("shot_num", "Shot #", shot.shot_num, { required: true })}
+        {field("code", "Shot #", shot.code, { required: true })}
         <label className="grid gap-1"><span className="label">Status</span>
           <select className="input" name="status_id" defaultValue={shot.status_id ?? ""}>
             {!shot.status_id && <option value="">No status</option>}

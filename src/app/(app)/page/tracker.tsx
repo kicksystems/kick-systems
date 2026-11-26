@@ -22,11 +22,11 @@ export async function TrackerView({ me, page, sp }: { me: Me; page: PageInfo; sp
     const manager = (await db.query("select public.can_manage_project($1) as ok", [page.project_id])).rows[0].ok as boolean;
     const statuses = await projectStatuses(db, page.project_id);
     const shots: Row[] = client
-      ? (await db.query<Row>("select * from shots_client where episode_id=$1 order by sort_order, shot_num", [page.episode_id])).rows
+      ? (await db.query<Row>("select * from shots_client where episode_id=$1 order by sort_order, code", [page.episode_id])).rows
       : (await db.query<Row>(
           `select s.*, to_char(s.due_date, 'YYYY-MM-DD') as due_date, coalesce(pr.full_name, s.artist_name) as artist_display
              from shots s left join profiles pr on pr.id = s.artist_id
-            where s.episode_id=$1 order by s.sort_order, s.shot_num`, [page.episode_id])).rows;
+            where s.episode_id=$1 order by s.sort_order, s.code`, [page.episode_id])).rows;
     const ids = shots.map((x) => x.id);
     const notes: Note[] = client || !ids.length ? [] : (await db.query<Note>(
       `select id, shot_id, author_name, body, ${ISO("created_at")} as created_at from shot_notes where shot_id = any($1) order by created_at`, [ids])).rows;
@@ -50,7 +50,7 @@ export async function TrackerView({ me, page, sp }: { me: Me; page: PageInfo; sp
   if (f.artist) list = list.filter((x) => (x.artist_display ?? "") === f.artist);
   if (f.status) list = list.filter((x) => x.status_id === f.status);
   if (f.seq) list = list.filter((x) => (x.sequence ?? "") === f.seq);
-  if (f.q) list = list.filter((x) => `${x.shot_num} ${x.slate ?? ""} ${x.brief}`.toLowerCase().includes(f.q));
+  if (f.q) list = list.filter((x) => `${x.code} ${x.slate ?? ""} ${x.brief}`.toLowerCase().includes(f.q));
   const artists = [...new Set(shots.map((x) => x.artist_display).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, "pt-BR"));
   const seqs = [...new Set(shots.map((x) => x.sequence).filter(Boolean) as string[])];
   const scenes = !page.uses_episodes ? [...(project.scenes as string[]), ...seqs.filter((q) => !(project.scenes as string[]).includes(q))] : [];
@@ -63,9 +63,9 @@ export async function TrackerView({ me, page, sp }: { me: Me; page: PageInfo; sp
 
   const cell = (x: Row, k: string) => {
     switch (k) {
-      case "shot_num": return (
+      case "code": return (
         <td key={k} className="whitespace-nowrap font-bold">
-          {x.shot_num || "–"}
+          {x.code || "–"}
           {manager && <><br /><Link href={`/shot/${x.id}?back=${encodeURIComponent(here)}`} className="text-xs font-semibold text-accent underline">Edit</Link></>}
         </td>);
       case "artist": return <td key={k} className="whitespace-nowrap">{x.artist_display || <span className="text-muted">No artist</span>}</td>;
@@ -104,7 +104,7 @@ export async function TrackerView({ me, page, sp }: { me: Me; page: PageInfo; sp
             {manager && (
               <form action={addNote} className="mt-1">
                 <input type="hidden" name="shot" value={x.id} /><input type="hidden" name="back" value={here} />
-                <input name="body" className="input !min-h-[30px] text-xs" placeholder="Add a note, press Enter" aria-label={`Add an internal note to ${x.shot_num}`} />
+                <input name="body" className="input !min-h-[30px] text-xs" placeholder="Add a note, press Enter" aria-label={`Add an internal note to ${x.code}`} />
               </form>
             )}
           </td>);
@@ -115,7 +115,7 @@ export async function TrackerView({ me, page, sp }: { me: Me; page: PageInfo; sp
           <td key={k} className="note">
             <form action={saveClientNote} className="grid gap-1">
               <input type="hidden" name="shot" value={x.id} /><input type="hidden" name="field" value={k} /><input type="hidden" name="back" value={here} />
-              <textarea name="body" defaultValue={v} rows={2} className="input text-xs" aria-label={`${k === "elves_notes" ? "Elves" : "Showrunner"} notes for ${x.shot_num}`} />
+              <textarea name="body" defaultValue={v} rows={2} className="input text-xs" aria-label={`${k === "elves_notes" ? "Elves" : "Showrunner"} notes for ${x.code}`} />
               <button className="btn btn-ghost btn-sm justify-self-start">Save</button>
             </form>
           </td>);
@@ -136,7 +136,7 @@ export async function TrackerView({ me, page, sp }: { me: Me; page: PageInfo; sp
     return (
       <div className="flex items-center gap-1.5">
         {choices.length
-          ? <StatusSelect shot={x.id} current={x.status_id} options={choices} label={`Status of ${x.shot_num}`} />
+          ? <StatusSelect shot={x.id} current={x.status_id} options={choices} label={`Status of ${x.code}`} />
           : st ? <span className="pill" style={{ ["--c" as string]: st.color }}>{st.name}</span> : <span className="text-muted">–</span>}
         {lc && (
           <span tabIndex={0} className="inline-grid place-items-center w-6 h-6 rounded-full border border-line text-[12px] font-bold text-muted cursor-help"
