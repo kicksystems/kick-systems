@@ -79,10 +79,10 @@ export type FoundEpisode = {
 export async function findEpisodes(): Promise<FoundEpisode[]> {
   const doc = DOC();
   const hubName = (process.env.CODA_HUB_PAGE || "PEKS Hub").toLowerCase();
-  const pages = await all<CodaPage>(`/docs/${doc}/pages?limit=100`);
+  const pages = await all<CodaPage>(`/docs/${doc}/pages`);
   const hub = pages.find((p) => p.name.toLowerCase().includes(hubName));
   if (!hub) throw new Error("Hub page not found.");
-  const tables = await all<CodaTable>(`/docs/${doc}/tables?limit=100&tableTypes=table,view`);
+  const tables = await all<CodaTable>(`/docs/${doc}/tables?tableTypes=table,view`);
   const childrenOf = (id: string) => pages.filter((p) => p.parent?.id === id);
   const below = (id: string): CodaPage[] => childrenOf(id).flatMap((c) => [c, ...below(c.id)]);
 
@@ -292,7 +292,7 @@ export async function importEpisode(ep: FoundEpisode, apply: boolean): Promise<E
   if (!ep.tableId) problems.push("Shot Tracker table not found in this doc (it may be embedded from another doc).");
 
   const rows = ep.tableId
-    ? await all<CodaRow>(`/docs/${doc}/tables/${encodeURIComponent(ep.tableId)}/rows?useColumnNames=true&valueFormat=rich&sortBy=natural&limit=500`)
+    ? await all<CodaRow>(`/docs/${doc}/tables/${encodeURIComponent(ep.tableId)}/rows?useColumnNames=true&valueFormat=rich&sortBy=natural`)
     : [];
   const header = ep.trackerPageId ? parseTrackerHeader(await exportPageMarkdown(ep.trackerPageId).catch((e) => { problems.push(`Header: ${e.message}`); return ""; })) : { codaCount: null, storyline: null, header: null };
   const guide = ep.guidePageId ? parseGuide(await exportPageMarkdown(ep.guidePageId).catch((e) => { problems.push(`Visual Guides: ${e.message}`); return ""; })) : [];
