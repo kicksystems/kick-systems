@@ -1,5 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { findEpisodes, importEpisode } from "@/lib/coda";
+import { exportPageMarkdown, findEpisodes, importEpisode } from "@/lib/coda";
 
 // Import from Superhuman Docs (Coda). Protected by IMPORT_SECRET (a Vercel environment variable).
 //   ?key=…                         list the episodes found
@@ -24,6 +24,11 @@ export async function GET(req: Request) {
     if (!code) return Response.json({ episodes });
     const ep = episodes.find((e) => e.code === code);
     if (!ep) return Response.json({ error: `Episode ${code} not found.` }, { status: 404 });
+    if (url.searchParams.get("peek") === "guide" && ep.guidePageId) {
+      const md = await exportPageMarkdown(ep.guidePageId);
+      const at = Math.max(0, md.search(/SEQUENCE/i));
+      return Response.json({ length: md.length, sample: md.slice(at, at + 1500) });
+    }
     const report = await importEpisode(ep, url.searchParams.get("apply") === "1");
     return Response.json({ report });
   } catch (e) {
