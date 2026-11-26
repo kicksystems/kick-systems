@@ -24,7 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <nav aria-label="Main" className="px-3 pb-6 text-sm">
             <ul className="space-y-0.5 mb-4">
               <li><Link href="/" className="rail-link">Home</Link></li>
-              <li><span className="rail-link rail-muted" title="Arrives with the calendar stage">Calendar <span className="text-xs">(soon)</span></span></li>
+              {me.user_type !== "client" && <li><Link href="/calendar" className="rail-link">Calendar</Link></li>}
               {(me.user_type === "admin" || me.user_type === "director") && <li><Link href="/reports" className="rail-link">Reports</Link></li>}
               {me.user_type === "admin" && (<>
                 <li><Link href="/fada" className="rail-link">Fada dos shots</Link></li>

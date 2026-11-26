@@ -7,6 +7,8 @@ import { phraseOfTheDay, todayBRT, type Rule } from "@/lib/checklist";
 import { WorldClock } from "@/components/world-clock";
 import { Fairy } from "@/components/fairy";
 import { StatusSelect } from "./page/status-select";
+import { loadRows, loadSettings } from "@/lib/cal/data";
+import { visibleEvents } from "@/lib/cal/model";
 
 const ISO = (col: string) => `to_char(${col} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`;
 const longDate = () => new Date().toLocaleDateString("en-US", { timeZone: "America/Sao_Paulo", weekday: "long", month: "long", day: "numeric", year: "numeric" });
@@ -83,10 +85,7 @@ export default async function Home() {
               {me.user_type === "admin" && <Link href="/fada" className="text-sm underline text-accent mt-2 inline-block">Write a reminder</Link>}
             </div>
           </section>
-          <section className="card p-5">
-            <h2 className="font-display text-xl font-semibold">Calendar</h2>
-            <p className="text-sm text-muted">The production calendar arrives in the next stage.</p>
-          </section>
+          <CalendarCard me={me} />
         </div>
       </div>
     </div>
@@ -219,3 +218,34 @@ async function ClientHome({ first, projects }: { first: string; projects: Awaite
   );
 }
 
+
+async function CalendarCard({ me }: { me: Awaited<ReturnType<typeof requireMe>> }) {
+  const today = todayBRT();
+  const data = await asUser(me.id, async (db) => {
+    const p = (await db.query<{ id: string; name: string }>(
+      "select id, name from projects where not is_archived and public.can_view_calendar(id) order by (name ilike '%peks%') desc, name limit 1")).rows[0];
+    if (!p) return null;
+    const settings = await loadSettings(db, p.id);
+    const events = visibleEvents(await loadRows(db, p.id), settings).filter((e) => e.date >= today);
+    return { p, settings, events };
+  }).catch(() => null);
+  if (!data) return null;
+  const days = [...new Set(data.events.map((e) => e.date))].slice(0, 5);
+  const color = (id: string) => data.settings.categories.find((c) => c.id === id)?.color ?? "#999";
+  return (
+    <section className="card p-5">
+      <div className="flex items-center justify-between gap-2"><h2 className="font-display text-xl font-semibold">Calendar · {data.p.name}</h2><Link href="/calendar" className="btn btn-ghost btn-sm">Open</Link></div>
+      <ul className="mt-2 grid gap-2 text-sm">
+        {days.map((d) => (
+          <li key={d}>
+            <b className={d === today ? "text-accent" : ""}>{d === today ? "Today" : fmtDay(d)}</b>
+            {data.events.filter((e) => e.date === d).slice(0, 4).map((e) => (
+              <span key={e.id} className="flex items-center gap-1.5 text-xs mt-0.5"><span className="w-2 h-2 rounded-full shrink-0" style={{ background: color(e.category) }} />{e.episode} {e.label}</span>
+            ))}
+          </li>
+        ))}
+        {!days.length && <li className="text-muted">No upcoming dates.</li>}
+      </ul>
+    </section>
+  );
+}
