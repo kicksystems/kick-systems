@@ -327,8 +327,10 @@ export async function importEpisode(ep: FoundEpisode, apply: boolean): Promise<E
       const epNum = text(pick(v, /^episode$/i));
       if (epNum && epNum.replace(/\D/g, "") && epNum.replace(/\D/g, "") !== ep.code) return null;
       const st = text(pick(v, /^status$/i));
+      // Match by name first (older episodes used other numbers, e.g. "8. ON HOLD"), then by number.
+      const norm = (x: string) => x.replace(/^\s*\d+\.\s*/, "").replace(/[^a-z0-9]+/gi, " ").trim().toLowerCase();
       const code = parseInt(st, 10);
-      const status = statuses.find((s) => s.code === code) ?? null;
+      const status = (st && statuses.find((s) => norm(s.name) === norm(st))) || statuses.find((s) => s.code === code) || null;
       if (st && !status) unknownStatuses[st] = (unknownStatuses[st] ?? 0) + 1;
       const who = person(pick(v, /^artist$/i));
       const prof = who && profiles.find((p) => (who.email && p.email === who.email.toLowerCase()) || p.name === who.name.toLowerCase());
